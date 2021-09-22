@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::Read;
 use std::mem;
 use std::time::Duration;
 
@@ -10,7 +10,7 @@ use claxon::FlacReader;
 /// Decoder for the Flac format.
 pub struct FlacDecoder<R>
 where
-    R: Read + Seek,
+    R: Read,
 {
     reader: FlacReader<R>,
     current_block: Vec<i32>,
@@ -24,14 +24,10 @@ where
 
 impl<R> FlacDecoder<R>
 where
-    R: Read + Seek,
+    R: Read,
 {
     /// Attempts to decode the data as Flac.
-    pub fn new(mut data: R) -> Result<FlacDecoder<R>, R> {
-        if !is_flac(data.by_ref()) {
-            return Err(data);
-        }
-
+    pub fn new(data: R) -> Result<FlacDecoder<R>, R> {
         let reader = FlacReader::new(data).unwrap();
         let spec = reader.streaminfo();
 
@@ -55,7 +51,7 @@ where
 
 impl<R> Source for FlacDecoder<R>
 where
-    R: Read + Seek,
+    R: Read,
 {
     #[inline]
     fn current_frame_len(&self) -> Option<usize> {
@@ -83,7 +79,7 @@ where
 
 impl<R> Iterator for FlacDecoder<R>
 where
-    R: Read + Seek,
+    R: Read,
 {
     type Item = i16;
 
@@ -117,20 +113,4 @@ where
             }
         }
     }
-}
-
-/// Returns true if the stream contains Flac data, then resets it to where it was.
-fn is_flac<R>(mut data: R) -> bool
-where
-    R: Read + Seek,
-{
-    let stream_pos = data.seek(SeekFrom::Current(0)).unwrap();
-
-    if FlacReader::new(data.by_ref()).is_err() {
-        data.seek(SeekFrom::Start(stream_pos)).unwrap();
-        return false;
-    }
-
-    data.seek(SeekFrom::Start(stream_pos)).unwrap();
-    true
 }

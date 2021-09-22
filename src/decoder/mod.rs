@@ -23,7 +23,7 @@ mod wav;
 /// Supports MP3, WAV, Vorbis and Flac.
 pub struct Decoder<R>(DecoderImpl<R>)
 where
-    R: Read + Seek;
+    R: Read;
 
 pub struct LoopedDecoder<R>(DecoderImpl<R>)
 where
@@ -31,7 +31,7 @@ where
 
 enum DecoderImpl<R>
 where
-    R: Read + Seek,
+    R: Read,
 {
     #[cfg(feature = "wav")]
     Wav(wav::WavDecoder<R>),
@@ -99,7 +99,12 @@ where
             Ok(decoder) => Ok(Decoder(DecoderImpl::Wav(decoder))),
         }
     }
+}
 
+impl<R> Decoder<R>
+where
+    R: Read + Send,
+{
     /// Builds a new decoder from flac data.
     #[cfg(feature = "flac")]
     pub fn new_flac(data: R) -> Result<Decoder<R>, DecoderError> {
@@ -139,7 +144,7 @@ where
 
 impl<R> Iterator for Decoder<R>
 where
-    R: Read + Seek,
+    R: Read,
 {
     type Item = i16;
 
@@ -176,7 +181,7 @@ where
 
 impl<R> Source for Decoder<R>
 where
-    R: Read + Seek,
+    R: Read,
 {
     #[inline]
     fn current_frame_len(&self) -> Option<usize> {
