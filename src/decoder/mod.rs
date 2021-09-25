@@ -107,11 +107,9 @@ where
 {
     /// Builds a new decoder from flac data.
     #[cfg(feature = "flac")]
-    pub fn new_flac(data: R) -> Result<Decoder<R>, DecoderError> {
-        match flac::FlacDecoder::new(data) {
-            Err(_) => Err(DecoderError::UnrecognizedFormat),
-            Ok(decoder) => Ok(Decoder(DecoderImpl::Flac(decoder))),
-        }
+    pub fn new_flac(data: R) -> Result<Decoder<R>, claxon::Error> {
+        let decoder = flac::FlacDecoder::new(data)?;
+        Ok(Decoder(DecoderImpl::Flac(decoder)))
     }
 
     /// Builds a new decoder from vorbis data.
@@ -146,10 +144,10 @@ impl<R> Iterator for Decoder<R>
 where
     R: Read,
 {
-    type Item = i16;
+    type Item = i32;
 
     #[inline]
-    fn next(&mut self) -> Option<i16> {
+    fn next(&mut self) -> Option<Self::Item> {
         match &mut self.0 {
             #[cfg(feature = "wav")]
             DecoderImpl::Wav(source) => source.next(),
@@ -263,7 +261,7 @@ where
             DecoderImpl::Mp3(source) => source.next(),
             DecoderImpl::None(_) => None,
         } {
-            Some(sample)
+            Some(sample as i16)
         } else {
             let decoder = mem::replace(&mut self.0, DecoderImpl::None(Default::default()));
             let (decoder, sample) = match decoder {
@@ -305,7 +303,7 @@ where
                 none @ DecoderImpl::None(_) => (none, None),
             };
             self.0 = decoder;
-            sample
+            sample.map(|s| s as i16)
         }
     }
 

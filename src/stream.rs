@@ -213,6 +213,14 @@ impl CpalDeviceExt for cpal::Device {
                 },
                 error_callback,
             ),
+            cpal::SampleFormat::I32 => self.build_output_stream::<i32, _, _>(
+                &format.config(),
+                move |data, _| {
+                    data.iter_mut()
+                        .for_each(|d| *d = mixer_rx.next().map(|s| s.to_i32()).unwrap_or(0i32))
+                },
+                error_callback,
+            ),
             cpal::SampleFormat::U16 => self.build_output_stream::<u16, _, _>(
                 &format.config(),
                 move |data, _| {

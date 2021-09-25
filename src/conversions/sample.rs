@@ -130,6 +130,29 @@ impl Sample for i16 {
     }
 }
 
+impl Sample for i32 {
+    #[inline]
+    fn lerp(first: i32, second: i32, numerator: u32, denominator: u32) -> i32 {
+        (first as i64 + (second as i64 - first as i64) * numerator as i64 / denominator as i64)
+            as i32
+    }
+
+    #[inline]
+    fn amplify(self, value: f32) -> i32 {
+        ((self as f32) * value) as i32
+    }
+
+    #[inline]
+    fn saturating_add(self, other: i32) -> i32 {
+        self.saturating_add(other)
+    }
+
+    #[inline]
+    fn zero_value() -> i32 {
+        0
+    }
+}
+
 impl Sample for f32 {
     #[inline]
     fn lerp(first: f32, second: f32, numerator: u32, denominator: u32) -> f32 {

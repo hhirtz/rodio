@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::io::Read;
 use std::mem;
 use std::time::Duration;
@@ -27,8 +26,8 @@ where
     R: Read,
 {
     /// Attempts to decode the data as Flac.
-    pub fn new(data: R) -> Result<FlacDecoder<R>, R> {
-        let reader = FlacReader::new(data).unwrap();
+    pub fn new(data: R) -> claxon::Result<FlacDecoder<R>> {
+        let reader = FlacReader::new(data)?;
         let spec = reader.streaminfo();
 
         Ok(FlacDecoder {
@@ -81,24 +80,19 @@ impl<R> Iterator for FlacDecoder<R>
 where
     R: Read,
 {
-    type Item = i16;
+    type Item = i32;
 
     #[inline]
-    fn next(&mut self) -> Option<i16> {
+    fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.current_block_off < self.current_block.len() {
                 // Read from current block.
                 let real_offset = (self.current_block_off % self.channels as usize)
                     * self.current_block_channel_len
                     + self.current_block_off / self.channels as usize;
-                let raw_val = self.current_block[real_offset];
+                let val = self.current_block[real_offset] << (32 - self.bits_per_sample);
                 self.current_block_off += 1;
-                let real_val = match self.bits_per_sample.cmp(&16) {
-                    Ordering::Less => (raw_val << (16 - self.bits_per_sample)) as i16,
-                    Ordering::Equal => raw_val as i16,
-                    Ordering::Greater => (raw_val >> (self.bits_per_sample - 16)) as i16,
-                };
-                return Some(real_val as i16);
+                return Some(val);
             }
 
             // Load the next block.
